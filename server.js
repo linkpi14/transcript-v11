@@ -167,3 +167,39 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📱 Acesse: http://localhost:${PORT}`);
 });
+
+
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+// Rota para processar vídeos do YouTube
+app.post('/api/transcribe/youtube', async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL não fornecida' });
+  }
+
+  const outputDir = path.join(__dirname, 'downloads');
+  const outputAudio = path.join(outputDir, 'audio.mp3');
+
+  try {
+    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
+
+    const ytDlpCmd = `yt-dlp -f bestaudio -o "${outputDir}/audio.%(ext)s" ${url}`;
+    await execAsync(ytDlpCmd);
+
+    const inputAudio = fs.readdirSync(outputDir).find(file => file.includes('audio.'));
+    const inputPath = path.join(outputDir, inputAudio);
+
+    const ffmpegCmd = `ffmpeg -i "${inputPath}" -vn -ar 44100 -ac 2 -b:a 128k "${outputAudio}" -y`;
+    await execAsync(ffmpegCmd);
+
+    res.json({ message: 'Download e conversão concluídos', path: outputAudio });
+  } catch (err) {
+    console.error('Erro:', err);
+    res.status(500).json({ error: 'Falha ao processar vídeo do YouTube' });
+  }
+});
