@@ -1,9 +1,9 @@
 FROM node:18-alpine
 
-# Instala dependências do sistema
+# Instalar dependências do sistema
 RUN apk add --no-cache ffmpeg python3 py3-pip make g++
 
-# Instala yt-dlp via pip
+# Instalar yt-dlp via pip
 RUN pip install -U yt-dlp
 
 WORKDIR /app
